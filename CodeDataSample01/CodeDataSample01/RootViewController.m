@@ -50,6 +50,9 @@
     // Start the location manager.
     [[self locationManager] startUpdatingLocation];
     
+    /*
+     //\\********* No Predicate is used. *******************\\
+     
     //Read from the coredata table and populate it.
     NSFetchRequest *request = [[NSFetchRequest alloc] init];
     NSEntityDescription *entity = [NSEntityDescription entityForName:@"Event" inManagedObjectContext:_managedObjectContext];
@@ -71,6 +74,107 @@
     }
     
     [self setEventsArray:fetchResults];
+     
+     */
+    
+//    NSString *attributeName = @"firstName";
+//    NSString *attributeValue = @"Adam";
+//    NSPredicate *predicate = [NSPredicate predicateWithFormat:@"%@ like %@",
+//                              attributeName, attributeValue];
+    
+     //\\*********  Predicate is used. *******************\\
+     
+     //Read from the coredata table and populate it.
+     NSFetchRequest *request = [[NSFetchRequest alloc] init];
+     NSEntityDescription *entity = [NSEntityDescription entityForName:@"Event" inManagedObjectContext:_managedObjectContext];
+     [request setEntity:entity];
+    
+    //We can create predicate in 3ways
+    //1. Using fromatted string
+    //2. Directly in code
+    //3. Using Predicate Template
+    
+    /*
+    //#########################################
+    //1. Using fromatted string
+    
+     NSPredicate *filter = [NSPredicate predicateWithFormat:@"latitude > %d", 37];
+     //NSPredicate *filter = [NSPredicate predicateWithFormat:@"latitude > %@", [NSNumber numberWithInt:37]];
+    //Simillarly we will substitute for Bool: [NSNumber numberWithBool:aBool]
+    */
+    
+    //#########################################
+    //2. Directly in code. You need to create NSExpression etc..
+    //We can skip this approch
+    
+    //#########################################
+    //3. Using Predicate Template
+    
+    NSPredicate *filter = [NSPredicate predicateWithFormat:@"latitude > $LATITUDE_VALUE"];
+    //Here, we need to provide substitution value for $LATITUDE_VALUE
+    //Internally, it will create NSExpression etc...
+    
+    
+    
+    
+     [request setPredicate:filter];
+    
+     //Set sort descriptor. Sorting as per the date.
+     NSSortDescriptor *sortDescriptor = [[NSSortDescriptor alloc] initWithKey:@"creationDate" ascending:NO];
+     NSArray *sortDescriptors = [[NSArray alloc] initWithObjects:sortDescriptor, nil];
+     
+     [request setSortDescriptors:sortDescriptors];
+    
+    //The following we can set the substitution value for prdicate.
+    
+    //1. Save this fetch request in ManagedObjectModel object
+     NSManagedObjectModel *model = [[_managedObjectContext persistentStoreCoordinator] managedObjectModel];
+     [model setFetchRequestTemplate:request forName:@"AnyName"];
+    
+     //2. Moify this request by providing the substitute values.
+        //Rather you are reading this template through ManagedObjectModel and provide substitute values
+        //The same API "fetchRequestFromTemplateWithName" is used when we create predicate using XCode CoreData Tool
+    
+     request =  [model fetchRequestFromTemplateWithName:@"AnyName"
+                                 substitutionVariables:[NSDictionary dictionaryWithObject:[NSNumber numberWithInt:37] forKey:@"LATITUDE_VALUE"]];
+     
+     //Now fetch records from CoreData
+     NSError *error = nil;
+     NSMutableArray *fetchResults = [[_managedObjectContext executeFetchRequest:request error:&error] mutableCopy];
+     
+     if(fetchResults == nil)
+     {
+     NSLog(@"Error while retrieving Data");
+     }
+     
+     [self setEventsArray:fetchResults];
+     
+     
+    
+    /*
+     //\\********* Usig XCode Predicate Builder *******************\\
+    NSManagedObjectModel *model = [[_managedObjectContext persistentStoreCoordinator] managedObjectModel];
+    NSFetchRequest *reqTemplate = [[model fetchRequestTemplateForName:@"FetchReq"] copy];
+    
+    //Set sort descriptor. Sorting as per the date.
+    NSSortDescriptor *sortDescriptor = [[NSSortDescriptor alloc] initWithKey:@"creationDate" ascending:NO];
+    NSArray *sortDescriptors = [[NSArray alloc] initWithObjects:sortDescriptor, nil];
+    
+    [reqTemplate setSortDescriptors:sortDescriptors];
+    
+    //Now fetch records from CoreData
+    NSError *error = nil;
+    NSMutableArray *fetchResults = [[_managedObjectContext executeFetchRequest:reqTemplate error:&error] mutableCopy];
+    
+    if(fetchResults == nil)
+    {
+        NSLog(@"Error while retrieving Data");
+    }
+    
+    
+    
+    [self setEventsArray:fetchResults];
+     */
 }
 
 - (void) addEvent
