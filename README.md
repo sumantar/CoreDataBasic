@@ -329,6 +329,158 @@ CRUD Operation - Create, Read, Update and Delete Operation
 		
 Now We have setup the basic core data architecture. Suppose, you have dependance entities. We need not to fetch each individual entity rather fetch one entity and the dependant will automatically fetched.
 
+===========================================================================================================================================
+Now Lets use the NSFetchedResults Controller which is designed to be used with table view controller:
+
+NSFetchedResultsController
+--------------------------------------
+
+=> This class is derived from NSObject. It keeps reference of NSManagedObjectContext, NSFetchRequest and other parameters.
+=> There is only one initialisation method that takes 3 parameters
+	-> NSFetchRequest
+	-> ManagedObjectContext
+	-> SectionNameKeyPath - Sort data with respect to section. If we don't need, then we can set it as nil
+	-> Cache Name: Name of the file he fetched results controller should use to cache any repeat work such as setting up sections and ordering contents. We can set any string name here.
+
+=> Once we initialise, we will execute the fetch request by - - (BOOL)performFetch:(NSError **)error;. All the results of the fetched request will be available in an array - readonly property defined fetchedObject. If the return is NO, we can handle error.
+=> Once we have data fetched from the DB, we can use to access object with index in order to use with table view. - (id)objectAtIndexPath:(NSIndexPath *)indexPath;
+=> NSFetchedResultsController has one delegate, NSFetchedResultsControllerDelegate that has defined 4 major methods. All are optional methods.
+	-> controllerWillChangeContent: This is where, we can instruct the tableview that multiple data will change. Start session of editing - beginUpdates
+	-> controllerDidChangeContent: This is where, we can instruct the tableview that multiple data will change Done. Start session of editing - endUpdates
+	-> didChangeObject: In this delegate method, we will change the or update the rows of table views
+	-> didChangeSection: In this delegate method, we will change the or update the Sections of table views
+
+Sample Code:
+------------------
+1) In our controller, we used to have a reference of an array to hold our model object. [It is obvious to keep a reference of ManagedObjectContext]. Let not keep the array of model rather lets have one object of NSFetchResultsController.
+@property (nonatomic, strong)NSFetchedResultsController *fetchedResultsController;
+2) Lets create the object of fetchResultsController. Lets do the lazy loading by overriding the getter method, where we will initialise using fetch result request and context. We will set the delegate object.
+-(NSFetchedResultsController *)fetchedResultsController{
+    if(_fetchedResultsController !=nil)
+        return _fetchedResultsController;
+    
+    NSFetchRequest *request = [[NSFetchRequest alloc] init];
+    NSEntityDescription *entity = [NSEntityDescription entityForName:@"FailedBankInfo" inManagedObjectContext:_managedObjectContext];
+    [request setEntity:entity];
+    
+    NSSortDescriptor *sortDesc = [[NSSortDescriptor alloc]initWithKey:@"details.closeDate" ascending:NO];
+    [request setSortDescriptors:[NSArray arrayWithObject:sortDesc]];
+    
+    [request setFetchBatchSize:20];
+    
+    //Now setup fetchedrequestcontroller
+    NSFetchedResultsController *resultController = [[NSFetchedResultsController alloc] initWithFetchRequest:request managedObjectContext:_managedObjectContext sectionNameKeyPath:nil cacheName:@"root"];
+    self.fetchedResultsController = resultController;
+    
+    self.fetchedResultsController.delegate = self;
+    
+    return _fetchedResultsController;
+}
+
+3) In viewDidLoad, fetch the object from the DB and setup the model object with NSFetchResultController
+- (void)viewDidLoad
+{
+    [super viewDidLoad];
+
+    NSError *error = nil;
+    if([self.fetchedResultsController performFetch:&error])
+    {
+        NSLog(@"Error in fetch the data");
+    }
+}
+
+Now we have the data, lets use it into TableView 
+
+4) Set the number of sections in TableView Delegate method:
+We will set the number of sections based on NSFetchResultController
+- (NSInteger)numberOfSectionsInTableView:(UITableView *)tableView
+{
+    return [[self.fetchedResultsController sections] count];
+}
+
+5) Set the number of Rows in TableView Delegate method:
+- (NSInteger)tableView:(UITableView *)tableView numberOfRowsInSection:(NSInteger)section
+{
+    id sectionInfo = [[self.fetchedResultsController sections] objectAtIndex:section];
+    return [sectionInfo numberOfObjects];
+}
+
+6) Configure the Cell:
+- (UITableViewCell *)tableView:(UITableView *)tableView cellForRowAtIndexPath:(NSIndexPath *)indexPath
+{
+    static NSString *CellIdentifier = @"Cell";
+    UITableViewCell *cell = [tableView dequeueReusableCellWithIdentifier:CellIdentifier forIndexPath:indexPath];
+    
+    // Configure the cell... 
+    FailedBankInfo *info = [_fetchedResultsController objectAtIndexPath:indexPath];
+	//[Note: FailedBankInfo is the ManagedObject class representing one row of entity]
+    
+	//With this info, we will set up the cell
+    return cell;
+}
+
+
+7) Delegate methods: Mostly the below code may not required to be changed. We can change it with case to case basis 
+
+- (void) controllerWillChangeContent:(NSFetchedResultsController *)controller
+{
+    [self.tableView beginUpdates];
+}
+
+- (void) controllerDidChangeContent:(NSFetchedResultsController *)controller
+{
+    [self.tableView endUpdates];
+}
+- (void) controller:(NSFetchedResultsController *)controller didChangeObject:(id)anObject atIndexPath:(NSIndexPath *)indexPath forChangeType:(NSFetchedResultsChangeType)type newIndexPath:(NSIndexPath *)newIndexPath
+{
+    UITableView *tableView = self.tableView;
+    
+    switch(type) {
+            
+        case NSFetchedResultsChangeInsert:
+            [tableView insertRowsAtIndexPaths:[NSArray arrayWithObject:newIndexPath] withRowAnimation:UITableViewRowAnimationFade];
+            break;
+            
+        case NSFetchedResultsChangeDelete:
+            [tableView deleteRowsAtIndexPaths:[NSArray arrayWithObject:indexPath] withRowAnimation:UITableViewRowAnimationFade];
+            break;
+            
+        case NSFetchedResultsChangeUpdate:
+            [self configureCell:[tableView cellForRowAtIndexPath:indexPath] atIndexPath:indexPath];
+            break;
+            
+        case NSFetchedResultsChangeMove:
+            [tableView deleteRowsAtIndexPaths:[NSArray
+                                               arrayWithObject:indexPath] withRowAnimation:UITableViewRowAnimationFade];
+            [tableView insertRowsAtIndexPaths:[NSArray
+                                               arrayWithObject:newIndexPath] withRowAnimation:UITableViewRowAnimationFade];
+            break;
+    }
+}
+
+- (void) controller:(NSFetchedResultsController *)controller didChangeSection:(id<NSFetchedResultsSectionInfo>)sectionInfo atIndex:(NSUInteger)sectionIndex forChangeType:(NSFetchedResultsChangeType)type
+{
+    switch(type) {
+            
+        case NSFetchedResultsChangeInsert:
+            [self.tableView insertSections:[NSIndexSet indexSetWithIndex:sectionIndex] withRowAnimation:UITableViewRowAnimationFade];
+            break;
+            
+        case NSFetchedResultsChangeDelete:
+            [self.tableView deleteSections:[NSIndexSet indexSetWithIndex:sectionIndex] withRowAnimation:UITableViewRowAnimationFade];
+            break;
+    }
+}
+
+================================================================================================================================
+Final Step
+-------------
+
+This is about the relationship.
+=> We can set the relationship, and reverse relationship is must. We should always try to set it.
+=> Once we have a relationship set, we can fetch by using NSFetchRequest and we fetch one entity, we will have the related entity will also be fetched by CoreData and we do not need to fetch it separately.
+=> When we setup relationship and used to generate custom NSManagedObject class, the reference may set in relationship class as with the name as NSManagedObject *. We must change it to the corresponding custom ManagedObject subclass.
+
 
 
 
