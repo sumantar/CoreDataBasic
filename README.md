@@ -479,9 +479,15 @@ Final Step
 
 This is about the relationship.
 => We can set the relationship, and reverse relationship is must. We should always try to set it.
+
 => Once we have a relationship set, we can fetch by using NSFetchRequest and we fetch one entity, we will have the related entity will also be fetched by CoreData and we do not need to fetch it separately.
+
 => When we setup relationship and used to generate custom NSManagedObject class, the reference may set in relationship class as with the name as NSManagedObject *. We must change it to the corresponding custom ManagedObject subclass.
 
+=> If you want to see the SQL Queries, we need to set up the Xcode Project as follows:
+<Edit Scheme> ---> <Run Configuration> ---><Argument Tag>, enter the following command:
+
+-com.apple.CoreData.SQLDebug 1
 
 
 
