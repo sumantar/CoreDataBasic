@@ -354,6 +354,7 @@ Sample Code:
 ------------------
 1) In our controller, we used to have a reference of an array to hold our model object. [It is obvious to keep a reference of ManagedObjectContext]. Let not keep the array of model rather lets have one object of NSFetchResultsController.
 @property (nonatomic, strong)NSFetchedResultsController *fetchedResultsController;
+
 2) Lets create the object of fetchResultsController. Lets do the lazy loading by overriding the getter method, where we will initialise using fetch result request and context. We will set the delegate object.
 -(NSFetchedResultsController *)fetchedResultsController{
     if(_fetchedResultsController !=nil)
