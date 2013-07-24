@@ -478,6 +478,7 @@ Final Step
 -------------
 
 This is about the relationship.
+
 => We can set the relationship, and reverse relationship is must. We should always try to set it.
 
 => Once we have a relationship set, we can fetch by using NSFetchRequest and we fetch one entity, we will have the related entity will also be fetched by CoreData and we do not need to fetch it separately.
