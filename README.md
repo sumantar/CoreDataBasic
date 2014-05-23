@@ -1,3 +1,6 @@
+Note: We can use Mogenerator for easy use of CoreData: https://github.com/rentzsch/mogenerator
+
+
 CoreDataBasic
 =============
 CoreData is simple to use.
@@ -8,7 +11,7 @@ As name suggest, this platform helps to store and retrieve objects in persistenc
 =>ManagedObjectContext (momc/momd compiler tools)
 =>PersistenceStoreCoordiator -> ManagedObectModel
 =>Persistence object Store
-2) Managed Object: Each managed object to be registered with Managed Object Context. It is a wrapper of NSEntityDescription
+2) Managed Object: Each managed object to be registered with Managed Object Context. It is a wrapper around NSEntityDescription
 
 It has three features:
 => Name
